@@ -138,9 +138,9 @@ The dashboard includes:
 
 ## 👨‍💻 Author
 
-**Krishiv Chopra**
-**Anishka Shah**
-**Anshika Kumar**
+* **Krishiv Chopra**
+* **Anishka Shah**
+* **Anshika Kumar**
 
 ---
 
