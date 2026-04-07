@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<title>Adaptive Scheduler Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<link rel="stylesheet" href="/static/style.css">
+
+</head>
+
+<body>
+
+<h1>Adaptive Anomaly-Aware Scheduler Dashboard</h1>
+
+<div class="dashboard">
+
+<!-- LEFT PANEL -->
+<div class="podsPanel">
+
+<h2>Cluster Pods</h2>
+
+<div class="cluster">
+
+<div class="node" id="node0">
+<h3>Node 0</h3>
+</div>
+
+<div class="node" id="node1">
+<h3>Node 1</h3>
+</div>
+
+<div class="node" id="node2">
+<h3>Node 2</h3>
+</div>
+
+</div>
+
+<!-- ACTIVITY LOG -->
+<div class="activityPanel">
+
+<h2>Pod Activity</h2>
+
+<div id="activityLog"></div>
+
+</div>
+
+</div>
+
+
+<!-- CPU GRAPH -->
+<div class="cpuGraph">
+
+<h2>Cluster CPU Usage</h2>
+
+<canvas id="cpuChart"></canvas>
+
+</div>
+
+
+<!-- STATUS GRAPH -->
+<div class="statusGraph">
+
+<h2>Pod Status</h2>
+
+<canvas id="statusChart"></canvas>
+
+</div>
+
+</div>
+
+
+<script>
+
+const cpuData=[]
+const labels=[]
+
+const cpuChart=new Chart(
+document.getElementById("cpuChart"),
+{
+type:"line",
+data:{
+labels:labels,
+datasets:[{
+label:"CPU Load",
+data:cpuData,
+borderColor:"cyan",
+fill:false
+}]
+}
+})
+
+const statusChart=new Chart(
+document.getElementById("statusChart"),
+{
+type:"doughnut",
+data:{
+labels:["Running","Anomaly","Crash"],
+datasets:[{
+data:[0,0,0],
+backgroundColor:["green","orange","red"]
+}]
+}
+})
+
+function addLog(message,type){
+
+const log=document.createElement("div")
+
+log.className="log "+type
+
+log.innerText=new Date().toLocaleTimeString()+"  "+message
+
+document.getElementById("activityLog").prepend(log)
+
+}
+
+function updateDashboard(){
+
+fetch("/data")
+.then(r=>r.json())
+.then(data=>{
+
+document.querySelectorAll(".pod").forEach(p=>p.remove())
+
+data.pods.forEach(p=>{
+
+let pod=document.createElement("div")
+
+pod.className="pod"
+
+if(p.status=="MIGRATING"){
+pod.classList.add("migrating")
+addLog("Pod "+p.id+" migrated to Node "+p.node,"migrate")
+}
+
+if(p.status=="CRASHED"){
+pod.classList.add("crashed")
+addLog("Pod "+p.id+" crashed","crash")
+}
+
+if(p.status=="RUNNING"){
+addLog("Pod "+p.id+" running normally","normal")
+}
+
+pod.innerText="Pod "+p.id
+
+document.getElementById("node"+p.node).appendChild(pod)
+
+})
+
+cpuData.push(data.cpu)
+labels.push(labels.length)
+
+if(cpuData.length>20){
+cpuData.shift()
+labels.shift()
+}
+
+cpuChart.update()
+
+statusChart.data.datasets[0].data=[
+data.pods.filter(p=>p.status=="RUNNING").length,
+data.anomalies,
+data.crashes
+]
+
+statusChart.update()
+
+})
+
+}
+
+setInterval(updateDashboard,2000)
+
+</script>
+
+</body>
+</html>
